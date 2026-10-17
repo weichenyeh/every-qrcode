@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>分享一棵樹</title>
+  </head>
+  <body>
+    <main>
+      <header>
+        <span>葉韋辰</span>
+        <h1>分享這一頁</h1>
+        <p>一個網址，一棵樹。</p>
+      </header>
+      <section class="share-card">
+        <div class="address">
+          <a id="address"></a><button id="copy" type="button" aria-label="複製連結">複製</button>
+        </div>
+        <button id="scene" type="button" aria-label="點樹顯示 QR 碼" disabled>
+          <canvas hidden></canvas
+          ><svg hidden aria-hidden="true" shape-rendering="crispEdges">
+            <rect fill="#b6b7a0" />
+            <path fill="#18221a" /></svg
+          ><span id="loading">正在長成一棵樹…</span>
+        </button>
+        <p id="hint" role="status" aria-live="polite">正在準備</p>
+      </section>
+      <aside id="review">
+        <p>配色與氣氛比較</p>
+        <div class="choices">
+          <button data-palette="original" aria-pressed="true">原作粉花</button
+          ><button data-palette="garden" aria-pressed="false">庭園綠</button
+          ><button data-palette="autumn" aria-pressed="false">秋色</button>
+        </div>
+        <div class="choices">
+          <button data-effect="calm" aria-pressed="true">微風</button
+          ><button data-effect="rain" aria-pressed="false">細雨</button>
+        </div>
+        <div class="choices"><button id="still" aria-pressed="false">靜止觀看</button></div>
+        <p class="credit">
+          Based on <a href="https://github.com/AlbertAZ1992/every-qrcode">Every QR Code</a> · MIT
+        </p>
+      </aside>
+    </main>
+    <script type="module" src="/src/share.ts"></script>
+  </body>
+</html>

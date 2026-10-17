@@ -24,6 +24,7 @@ export type SeedRenderer = {
 export type SeedRendererOptions = {
   readonly onError?: (error: Error) => void;
   readonly onReady?: () => void;
+  readonly reducedMotion?: boolean;
 };
 
 export type SeedSceneEffect = "calm" | "rain" | "snow" | "wind";
@@ -227,6 +228,7 @@ function createPalette(scene: SeedSceneConfig): SeedScenePalette {
 
 type RendererState = {
   closed: boolean;
+  reducedMotion: boolean;
   frame: number;
   from: number;
   gpu: SeedGpuResources | undefined;
@@ -876,9 +878,13 @@ function updateGpuScene(gpu: SeedGpuResources, scene: SeedSceneConfig): void {
 }
 
 function animate(canvas: HTMLCanvasElement, state: RendererState, now: number): void {
+  state.frame = 0;
   const gpu = state.gpu;
   if (!gpu || state.closed) return;
-  if (gpu.form === "terrain") {
+  if (state.reducedMotion) {
+    state.progress = state.target;
+    state.velocity = 0;
+  } else if (gpu.form === "terrain") {
     const elapsedSeconds = Math.min(0.05, Math.max(0, now - state.lastFrameTime) / 1000);
     const [progress, velocity] = stepTerrainSpring(
       state.progress,
@@ -903,17 +909,20 @@ function animate(canvas: HTMLCanvasElement, state: RendererState, now: number): 
   canvas.dataset["morphProgress"] = state.progress.toFixed(3);
   if (state.resizePending) state.resizePending = false;
   resizeGpuCanvas(canvas, gpu);
-  const time = now / 1000;
+  const time = state.reducedMotion ? 0 : now / 1000;
   const toggleAge = Math.max(0, (now - state.toggleTime) / 1000);
   writeUniforms(canvas, gpu, state.progress, time, toggleAge);
   renderGpuFrame(gpu);
-  state.frame = requestAnimationFrame((next) => animate(canvas, state, next));
+  if (!state.reducedMotion && (state.progress !== 1 || state.target !== 1)) {
+    state.frame = requestAnimationFrame((next) => animate(canvas, state, next));
+  }
 }
 
 function createInitialState(): RendererState {
   const now = performance.now();
   return {
     closed: false,
+    reducedMotion: false,
     frame: 0,
     from: 0,
     gpu: undefined,
@@ -937,6 +946,12 @@ export function mountSeed(
   options: SeedRendererOptions = {},
 ): SeedRenderer {
   const state = createInitialState();
+  state.reducedMotion = options.reducedMotion ?? false;
+  const requestFrame = (): void => {
+    if (!state.closed && state.gpu && !state.frame) {
+      state.frame = requestAnimationFrame((now) => animate(canvas, state, now));
+    }
+  };
   let sceneConfig = scene;
   canvas.dataset["renderer"] = "webgpu-initializing";
   void initializeGpu(canvas, model, sceneConfig, form)
@@ -969,6 +984,7 @@ export function mountSeed(
     },
     resize: () => {
       state.resizePending = true;
+      requestFrame();
     },
     setFlat: (flat) => {
       const target = flat ? 1 : 0;
@@ -980,14 +996,17 @@ export function mountSeed(
         MORPH_DURATION_MS * Math.max(0.25, Math.abs(state.target - state.from));
       state.transitionStart = now;
       state.toggleTime = now;
+      requestFrame();
     },
     setScene: (nextScene) => {
       sceneConfig = nextScene;
       if (state.gpu) updateGpuScene(state.gpu, nextScene);
+      requestFrame();
     },
     setZoom: (zoom) => {
       state.zoom = clampSeedZoom(zoom);
       if (state.gpu) state.gpu.zoom = state.zoom;
+      requestFrame();
     },
   };
 }
