@@ -194,8 +194,8 @@ html.embed .share-card {
   display: none;
 }
 #loader .c {
-  animation: assemble 2.4s ease infinite;
-  animation-delay: calc(var(--i) * 70ms);
+  animation: assemble 0.35s ease both;
+  animation-delay: calc(var(--i) * 40ms);
 }
 #loader.settle svg,
 #loader.settle .c {
@@ -208,17 +208,13 @@ html.embed .share-card {
   }
 }
 @keyframes assemble {
-  0%,
-  8% {
+  from {
     opacity: 0;
+    transform: translateY(-2px);
   }
-  22%,
-  80% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
+}
+canvas.held {
+  opacity: 0;
 }
 canvas.appear {
   animation: appear 0.45s ease both;

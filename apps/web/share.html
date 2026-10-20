@@ -4,6 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>分享一棵樹</title>
+    <!-- 嵌入模式要在畫面出現前決定：等主程式載入才切，整頁版的標題與按鈕會先閃一下 -->
+    <script>
+      if (new URLSearchParams(location.search).get("embed") === "1")
+        document.documentElement.classList.add("embed");
+    </script>
+    <style>
+      html {
+        background: #20251f;
+      }
+      html.embed main > header,
+      html.embed .address,
+      html.embed aside {
+        display: none;
+      }
+    </style>
   </head>
   <body>
     <main>
@@ -21,8 +36,7 @@
           ><svg hidden aria-hidden="true" shape-rendering="crispEdges">
             <rect fill="#b6b7a0" />
             <path fill="#18221a" /></svg
-          ><span id="loader" hidden aria-hidden="true"></span
-          ><span id="loading">正在長成一棵樹…</span>
+          ><span id="loader" hidden aria-hidden="true"></span><span id="loading" hidden></span>
         </button>
         <button id="badge" type="button" aria-pressed="false" hidden></button>
         <p id="hint" role="status" aria-live="polite">正在準備</p>

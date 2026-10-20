@@ -194,12 +194,24 @@ function updateHint(): void {
   badge.ariaLabel = flat ? text("顯示樹", "Show tree") : text("顯示 QR 碼", "Show QR code");
   badge.setAttribute("aria-pressed", String(flat));
 }
+// 小地磚一旦出現就完整播完：格子拼完一輪（約 1.3 秒）才縮回角落，不會才出現就收走
+const LOADER_MIN_MS = 1300;
+let loaderShownAt = 0;
 // 樹好了：中間的大地磚拼完、縮回右下角，最後由角落那顆按鈕接手。沒出現過就直接讓按鈕淡入
 function settleLoader(): void {
   if (loader.hidden) {
     badge.hidden = false;
     return;
   }
+  const wait = loaderShownAt + LOADER_MIN_MS - performance.now();
+  if (wait > 0) {
+    const version = revision;
+    setTimeout(() => {
+      if (version === revision) settleLoader();
+    }, wait);
+    return;
+  }
+  canvas.classList.replace("held", "appear");
   badge.hidden = false;
   badge.style.visibility = "hidden";
   loader.classList.add("settle");
@@ -253,7 +265,9 @@ async function mount(): Promise<void> {
     timeout = setTimeout(fallback, 15000);
     // 慢才給暗示：250 毫秒內就好的話直接淡入樹；超過就先在中間放大小地磚，格子一塊塊拼起來
     const hintTimer = setTimeout(() => {
-      if (version === revision && !ready) loader.hidden = false;
+      if (version !== revision || ready) return;
+      loader.hidden = false;
+      loaderShownAt = performance.now();
     }, 250);
     // 比較頁用：模擬慢速載入，看載入暗示
     const delay = Number(params.get("delay")) || 0;
@@ -277,7 +291,8 @@ async function mount(): Promise<void> {
         ready = true;
         clearTimeout(hintTimer);
         canvas.hidden = false;
-        canvas.classList.add("appear");
+        // 小地磚還在中間的話，樹先藏著，等地磚開始縮回角落才一起淡入
+        canvas.classList.add(loader.hidden ? "appear" : "held");
         settleLoader();
         scene.disabled = false;
         updateHint();
