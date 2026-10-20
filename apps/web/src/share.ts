@@ -69,11 +69,11 @@ function fallback(): void {
 }
 function updateHint(): void {
   hint.textContent = flat
-    ? text("掃描分享 · 點一下回到樹", "Scan to share · tap to return")
-    : text("點樹顯示 QR 碼", "Tap the tree to reveal QR code");
+    ? text("點選返回樹景", "Return to tree view")
+    : text("點選顯示 QR 碼", "Show QR code");
   scene.ariaLabel = flat
-    ? text("回到樹的視角", "Return to tree")
-    : text("點樹顯示 QR 碼", "Tap the tree to reveal QR code");
+    ? text("點選返回樹景", "Return to tree")
+    : text("點選顯示 QR 碼", "Show QR code");
   scene.setAttribute("aria-pressed", String(flat));
 }
 const identityPromise = createEveryQRCodeIdentity(params.get("url") || "https://weichenyeh.com/", {
@@ -105,6 +105,7 @@ async function mount(): Promise<void> {
     canvas = next;
     renderer = mountSeed(canvas, model, config, "tree", {
       reducedMotion: motion.matches || still,
+      fitTree: true,
       onReady: () => {
         if (version !== revision) return;
         clearTimeout(timeout);
@@ -119,7 +120,7 @@ async function mount(): Promise<void> {
         if (version === revision) fallback();
       },
     });
-    renderer.setZoom(embed ? 0.88 : 1);
+    renderer.setZoom(1);
     renderer.setFlat(flat);
   } catch {
     if (version !== revision) return;

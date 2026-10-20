@@ -1,4 +1,10 @@
 import {
+  measureTreeFrame,
+  fitTreeZoom,
+  frameShareShader,
+  type TreeFrame,
+} from "./share-framing.js";
+import {
   CURRENT_GENERATOR_VERSION,
   resolveGeneratorVersion,
   type GeneratorVersion,
@@ -25,6 +31,7 @@ export type SeedRendererOptions = {
   readonly onError?: (error: Error) => void;
   readonly onReady?: () => void;
   readonly reducedMotion?: boolean;
+  readonly fitTree?: boolean;
 };
 
 export type SeedSceneEffect = "calm" | "rain" | "snow" | "wind";
@@ -173,6 +180,7 @@ type RenderTargets = {
 };
 
 type SeedGpuResources = {
+  treeFrame?: TreeFrame;
   readonly bindGroups: SeedBindGroups;
   readonly blockField: SeedBlockField;
   readonly buffers: SeedBuffers;
@@ -549,8 +557,17 @@ async function createPipelines(
   layouts: PipelineLayouts,
   form: SeedForm,
   generatorVersion: GeneratorVersion,
+  fitTree = false,
 ): Promise<SeedPipelines> {
-  const sources = await loadSeedShaderSources(form, generatorVersion);
+  let sources = await loadSeedShaderSources(form, generatorVersion);
+  if (fitTree && sources.form === "tree") {
+    sources = Object.fromEntries(
+      Object.entries(sources).map(([key, value]) => [
+        key,
+        key === "form" ? value : frameShareShader(value),
+      ]),
+    ) as SeedShaderSources;
+  }
   const shared = await createSharedPipelines(device, format, layouts, sources);
   return sources.form === "terrain"
     ? createTerrainPipelines(device, format, layouts, shared, sources)
@@ -731,6 +748,11 @@ function writeUniforms(
     values[offset + 3] = 1;
   }
   values[56] = gpu.zoom;
+  if (gpu.treeFrame) {
+    values[56] *= fitTreeZoom(gpu.treeFrame, gpu.blockField.qrSize, values[0]!);
+    values[57] = gpu.treeFrame.centerX;
+    values[58] = gpu.treeFrame.centerY;
+  }
   gpu.device.queue.writeBuffer(gpu.buffers.uniforms, 0, values);
 }
 
@@ -832,6 +854,7 @@ async function initializeGpu(
   model: SeedModel,
   sceneConfig: SeedSceneConfig,
   form: SeedForm,
+  fitTree = false,
 ): Promise<SeedGpuResources> {
   if (!("gpu" in navigator)) throw new Error("This browser does not support WebGPU");
   const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
@@ -843,12 +866,20 @@ async function initializeGpu(
   const blockField = createSeedBlockField(model, form);
   const scene = createSeedGpuScene(model, form);
   const layouts = createLayouts(device);
-  const pipelines = await createPipelines(device, format, layouts, form, model.generatorVersion);
+  const pipelines = await createPipelines(
+    device,
+    format,
+    layouts,
+    form,
+    model.generatorVersion,
+    fitTree,
+  );
   const buffers = createBuffers(device, blockField, scene);
   const bindGroups = createBindGroups(device, layouts, buffers);
   const sampler = device.createSampler({ magFilter: "linear", minFilter: "linear" });
   const palette = createPalette(sceneConfig);
   return {
+    ...(fitTree && form === "tree" ? { treeFrame: measureTreeFrame(scene, model.qrSize) } : {}),
     bindGroups,
     blockField,
     buffers,
@@ -954,7 +985,7 @@ export function mountSeed(
   };
   let sceneConfig = scene;
   canvas.dataset["renderer"] = "webgpu-initializing";
-  void initializeGpu(canvas, model, sceneConfig, form)
+  void initializeGpu(canvas, model, sceneConfig, form, options.fitTree)
     .then((gpu) => {
       if (state.closed) {
         destroyGpuResources(gpu);
