@@ -175,16 +175,50 @@ html.embed .share-card {
   }
 }
 
-/* 載入慢時的暗示：QR 蓋一層深色毛玻璃；樹好了玻璃從當下的濃淡淡出、樹淡入 */
-svg.veil {
+/* 載入慢時的暗示：小地磚放大在中間，輕輕浮動，資料格一塊塊拼上去 */
+#loader {
   position: absolute;
-  inset: 0;
-  filter: blur(7px) brightness(0.55) saturate(0.7);
-  opacity: 0;
-  transition: opacity 0.4s ease;
+  left: 50%;
+  top: 50%;
+  width: 150px;
+  height: 162px;
+  margin: -81px 0 0 -75px;
+  animation: appear 0.3s ease both;
 }
-svg.veil.shown {
-  opacity: 0.8;
+#loader svg {
+  padding: 0;
+  overflow: visible;
+  animation: bob 2.4s ease-in-out infinite;
+}
+#loader .b-tree {
+  display: none;
+}
+#loader .c {
+  animation: assemble 2.4s ease infinite;
+  animation-delay: calc(var(--i) * 70ms);
+}
+#loader.settle svg,
+#loader.settle .c {
+  animation: none;
+  opacity: 1;
+}
+@keyframes bob {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+@keyframes assemble {
+  0%,
+  8% {
+    opacity: 0;
+  }
+  22%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 canvas.appear {
   animation: appear 0.45s ease both;
@@ -200,7 +234,7 @@ canvas.appear {
   right: 12px;
   bottom: 12px;
   width: 64px;
-  height: 58px;
+  height: 69px;
   padding: 0;
   border: 0;
   border-radius: 10px;
@@ -230,13 +264,12 @@ canvas.appear {
   opacity: 0.25;
 }
 @media (prefers-reduced-motion: reduce) {
-  svg.veil,
+  #loader,
+  #loader svg,
+  #loader .c,
   canvas.appear,
   #badge {
     animation: none;
     transition: none;
-  }
-  svg.veil {
-    opacity: 0.8;
   }
 }
