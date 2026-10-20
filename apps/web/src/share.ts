@@ -21,9 +21,15 @@ let ready = false;
 let still = false;
 let hasQR = false;
 let timeout: ReturnType<typeof setTimeout> | undefined;
-let config: SeedSceneConfig = { background: [32 / 255, 37 / 255, 31 / 255], effect: "calm" };
 const palettes: Record<string, SeedSceneConfig["palette"]> = {
   original: undefined,
+  winter: [
+    [0.36, 0.44, 0.56],
+    [0.55, 0.63, 0.74],
+    [0.6, 0.62, 0.64],
+    [0.27, 0.33, 0.3],
+    [0.68, 0.7, 0.72],
+  ],
   garden: [
     [0.42, 0.57, 0.29],
     [0.64, 0.71, 0.43],
@@ -39,6 +45,17 @@ const palettes: Record<string, SeedSceneConfig["palette"]> = {
     [0.78, 0.76, 0.65],
   ],
 };
+// 網站可指定季節色調、天氣與樹形；沒指定時沿用原作。
+const EFFECTS = ["calm", "rain", "snow", "wind"] as const;
+const SEASON_PALETTE: Record<string, string> = { spring: "original", summer: "garden", autumn: "autumn", winter: "winter" };
+const seasonPalette = palettes[SEASON_PALETTE[params.get("season") ?? ""] ?? "original"];
+const effectParam = EFFECTS.find((name) => name === params.get("weather")) ?? "calm";
+let config: SeedSceneConfig = {
+  background: [32 / 255, 37 / 255, 31 / 255],
+  effect: effectParam,
+  ...(seasonPalette ? { palette: seasonPalette } : {}),
+};
+const treeParam = params.get("tree");
 document.documentElement.lang = en ? "en" : "zh-Hant";
 document.documentElement.classList.toggle("embed", embed);
 if (en) {
@@ -98,7 +115,10 @@ async function mount(): Promise<void> {
     timeout = setTimeout(fallback, 15000);
     const { createSeedModel, mountSeed } =
       await import("../../../packages/renderer-webgpu/src/index");
-    const model = await createSeedModel(identity, { generatorVersion: 1 });
+    const { TREE_ARCHETYPES } = await import("../../../packages/renderer-webgpu/src/seed-model");
+    const base = await createSeedModel(identity, { generatorVersion: 1 });
+    const archetype = TREE_ARCHETYPES.find((name) => name === treeParam);
+    const model = archetype ? { ...base, archetype } : base;
     if (version !== revision) return;
     const next = document.createElement("canvas");
     canvas.replaceWith(next);
@@ -161,7 +181,7 @@ document.querySelectorAll<HTMLButtonElement>("[data-palette]").forEach((button) 
 );
 document.querySelectorAll<HTMLButtonElement>("[data-effect]").forEach((button) =>
   button.addEventListener("click", () => {
-    config = { ...config, effect: button.dataset["effect"] === "rain" ? "rain" : "calm" };
+    config = { ...config, effect: EFFECTS.find((name) => name === button.dataset["effect"]) ?? "calm" };
     renderer?.setScene(config);
     document
       .querySelectorAll("[data-effect]")
