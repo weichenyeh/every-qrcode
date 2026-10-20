@@ -86,11 +86,11 @@ function fallback(): void {
 }
 function updateHint(): void {
   hint.textContent = flat
-    ? text("點選返回樹景", "Return to tree view")
-    : text("點選顯示 QR 碼", "Show QR code");
+    ? text("點一下顯示樹", "Show tree")
+    : text("點一下顯示 QR 碼", "Show QR code");
   scene.ariaLabel = flat
-    ? text("點選返回樹景", "Return to tree")
-    : text("點選顯示 QR 碼", "Show QR code");
+    ? text("點一下顯示樹", "Show tree")
+    : text("點一下顯示 QR 碼", "Show QR code");
   scene.setAttribute("aria-pressed", String(flat));
 }
 const identityPromise = createEveryQRCodeIdentity(params.get("url") || "https://weichenyeh.com/", {
